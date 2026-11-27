@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pruebas de funcionamiento | Cafetería Escolar</title>
+  <link rel="icon" type="image/png" href="img/icon-192.png">
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; background: #fff7ec; color: #2b1d14; margin: 0; padding: 24px; }
+    .caja { max-width: 960px; margin: 0 auto; }
+    h1 { color: #7a3e1d; margin-bottom: 4px; }
+    .resumen { font-size: 1.1rem; padding: 12px 16px; border-radius: 10px; margin: 16px 0; font-weight: 600; }
+    .ok-total { background: #e8f5e9; color: #2e7d32; }
+    .fallo-total { background: #fdecea; color: #b3261e; }
+    table { width: 100%; border-collapse: collapse; background: #fff; }
+    th, td { border: 1px solid #ead9c6; padding: 8px 10px; text-align: left; font-size: .9rem; vertical-align: top; }
+    th { background: #7a3e1d; color: #fff; }
+    .ok { color: #2e7d32; font-weight: 700; }
+    .fallo { color: #b3261e; font-weight: 700; }
+    a { color: #7a3e1d; }
+  </style>
+</head>
+<body>
+<div class="caja">
+  <h1>Pruebas de funcionamiento</h1>
+  <p>Pruebas automáticas que se ejecutan en el navegador. <a href="index.html">← Volver a la aplicación</a></p>
+  <div id="resumen" class="resumen">Ejecutando pruebas...</div>
+  <table>
+    <thead><tr><th>ID</th><th>Módulo</th><th>Prueba</th><th>Resultado esperado</th><th>Estado</th></tr></thead>
+    <tbody id="resultados"></tbody>
+  </table>
+</div>
+
+<script src="js/datos-respaldo.js"></script>
+<script src="js/carrito.js"></script>
+<script>
+  const pruebas = [];
+  const prueba = (modulo, nombre, esperado, fn) => pruebas.push({ modulo, nombre, esperado, fn });
+  const igual = (a, b) => { if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`Se esperaba ${JSON.stringify(b)} y se obtuvo ${JSON.stringify(a)}`); };
+  const verdadero = (c, msg) => { if (!c) throw new Error(msg || 'La condición no se cumplió'); };
+
+  const torta = MENU_RESPALDO[0];        // $35
+  const horchata = MENU_RESPALDO[7];     // $18
+  const enchiladas = MENU_RESPALDO[3];   // agotado
+  const datosOk = { nombre: 'Luis Hernández', grupo: '5A', hora: '10:30' };
+
+  // --- Carrito ---
+  prueba('Carrito', 'Agregar un producto a un carrito vacío', '1 artículo en el carrito', () => {
+    const c = Carrito.agregar([], torta);
+    igual(c.length, 1); igual(c[0].cantidad, 1);
+  });
+  prueba('Carrito', 'Agregar el mismo producto dos veces', 'Cantidad = 2 (no se duplica la línea)', () => {
+    const c = Carrito.agregar(Carrito.agregar([], torta), torta);
+    igual(c.length, 1); igual(c[0].cantidad, 2);
+  });
+  prueba('Carrito', 'Agregar un producto agotado', 'Error "Producto no disponible"', () => {
+    let error = null;
+    try { Carrito.agregar([], enchiladas); } catch (e) { error = e.message; }
+    igual(error, 'Producto no disponible');
+  });
+  prueba('Carrito', 'Límite de 10 unidades por producto', 'Error al intentar agregar la 11.ª unidad', () => {
+    let c = [];
+    for (let i = 0; i < 10; i++) c = Carrito.agregar(c, torta);
+    let error = null;
+    try { Carrito.agregar(c, torta); } catch (e) { error = e.message; }
+    verdadero(error && error.includes('Máximo'), 'No se lanzó el error de límite');
+  });
+  prueba('Carrito', 'Disminuir cantidad hasta 0 elimina el producto', 'Carrito vacío', () => {
+    const c = Carrito.cambiarCantidad(Carrito.agregar([], torta), torta.id, -1);
+    igual(c.length, 0);
+  });
+  prueba('Carrito', 'Eliminar un producto', 'Solo queda la horchata', () => {
+    let c = Carrito.agregar(Carrito.agregar([], torta), horchata);
+    c = Carrito.eliminar(c, torta.id);
+    igual(c.map(i => i.id), [horchata.id]);
+  });
+  prueba('Carrito', 'No modifica el carrito original (inmutable)', 'El arreglo original no cambia', () => {
+    const original = Carrito.agregar([], torta);
+    Carrito.agregar(original, torta);
+    igual(original[0].cantidad, 1);
+  });
+
+  // --- Cálculos ---
+  prueba('Cálculos', 'Subtotal: 2 tortas + 1 horchata', '$88.00', () => {
+    let c = Carrito.agregar(Carrito.agregar(Carrito.agregar([], torta), torta), horchata);
+    igual(Carrito.formatoMoneda(Carrito.subtotal(c)), '$88.00');
+  });
+  prueba('Cálculos', 'Total de artículos', '3 artículos', () => {
+    let c = Carrito.agregar(Carrito.agregar(Carrito.agregar([], torta), torta), horchata);
+    igual(Carrito.totalArticulos(c), 3);
+  });
+  prueba('Cálculos', 'Formato de moneda', '$12.50', () => igual(Carrito.formatoMoneda(12.5), '$12.50'));
+
+  // --- Validación ---
+  const carritoLleno = Carrito.agregar([], torta);
+  prueba('Validación', 'Pedido con datos correctos', 'Sin errores', () => igual(Carrito.validarPedido(datosOk, carritoLleno), []));
+  prueba('Validación', 'Pedido con carrito vacío', 'Error "El carrito está vacío"', () => {
+    verdadero(Carrito.validarPedido(datosOk, []).includes('El carrito está vacío'));
+  });
+  prueba('Validación', 'Nombre demasiado corto ("Lu")', 'Error de nombre', () => {
+    verdadero(Carrito.validarPedido({ ...datosOk, nombre: 'Lu' }, carritoLleno).length === 1);
+  });
+  prueba('Validación', 'Grupo con formato inválido ("9Z9")', 'Error de grupo', () => {
+    verdadero(Carrito.validarPedido({ ...datosOk, grupo: '9Z9' }, carritoLleno)[0].startsWith('Grupo inválido'));
+  });
+  prueba('Validación', 'Hora fuera de servicio (16:00)', 'Error de horario', () => {
+    verdadero(Carrito.validarPedido({ ...datosOk, hora: '16:00' }, carritoLleno)[0].includes('07:00 a 15:00'));
+  });
+  prueba('Validación', 'Hora vacía', 'Error "Selecciona una hora"', () => {
+    verdadero(Carrito.validarPedido({ ...datosOk, hora: '' }, carritoLleno)[0].startsWith('Selecciona'));
+  });
+
+  // --- Folio ---
+  prueba('Folio', 'Formato del folio', 'CAF-AAAAMMDD-XXXX', () => {
+    verdadero(/^CAF-\d{8}-\d{4}$/.test(Carrito.generarFolio()), 'Formato incorrecto');
+  });
+
+  // --- Publicación / entorno ---
+  prueba('Publicación', 'El servidor entrega data/menu.json como JSON', 'Content-Type: application/json, 12 productos', async () => {
+    if (location.protocol === 'file:') throw new Error('Abre esta página desde un servidor web (no con doble clic)');
+    const r = await fetch('data/menu.json', { cache: 'no-store' });
+    verdadero(r.ok, 'HTTP ' + r.status);
+    verdadero((r.headers.get('content-type') || '').includes('application/json'), 'Content-Type: ' + r.headers.get('content-type'));
+    igual((await r.json()).length, 12);
+  });
+  prueba('Publicación', 'El manifiesto de la PWA es válido', 'name, start_url, display e íconos presentes', async () => {
+    if (location.protocol === 'file:') throw new Error('Abre esta página desde un servidor web');
+    const m = await (await fetch('manifest.json', { cache: 'no-store' })).json();
+    verdadero(m.name && m.start_url && m.display === 'standalone' && m.icons.length >= 2, 'Faltan campos');
+  });
+  prueba('Publicación', 'Contexto seguro (HTTPS o localhost)', 'window.isSecureContext = true', () => {
+    verdadero(window.isSecureContext, 'Se requiere HTTPS para el Service Worker');
+  });
+  prueba('Publicación', 'Soporte de Service Worker', "'serviceWorker' in navigator", () => {
+    verdadero('serviceWorker' in navigator, 'El navegador no soporta Service Workers');
+  });
+  prueba('Publicación', 'Almacenamiento local disponible', 'Se puede escribir y leer localStorage', () => {
+    localStorage.setItem('__prueba', '1');
+    igual(localStorage.getItem('__prueba'), '1');
+    localStorage.removeItem('__prueba');
+  });
+
+  (async () => {
+    const tbody = document.getElementById('resultados');
+    let ok = 0;
+    for (let i = 0; i < pruebas.length; i++) {
+      const p = pruebas[i];
+      let estado, detalle = '';
+      try { await p.fn(); estado = true; ok++; } catch (e) { estado = false; detalle = e.message; }
+      tbody.insertAdjacentHTML('beforeend', `<tr>
+        <td>PF-${String(i + 1).padStart(2, '0')}</td><td>${p.modulo}</td><td>${p.nombre}</td><td>${p.esperado}</td>
+        <td class="${estado ? 'ok' : 'fallo'}">${estado ? '✔ Aprobada' : '✘ Falló'}${detalle ? '<br><small>' + detalle + '</small>' : ''}</td></tr>`);
+    }
+    const r = document.getElementById('resumen');
+    r.textContent = `${ok} de ${pruebas.length} pruebas aprobadas`;
+    r.className = 'resumen ' + (ok === pruebas.length ? 'ok-total' : 'fallo-total');
+    document.title = `${ok}/${pruebas.length} | Pruebas`;
+  })();
+</script>
+</body>
+</html>

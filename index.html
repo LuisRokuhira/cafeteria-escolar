@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Sistema de pedidos en línea de la Cafetería Escolar">
+  <meta name="theme-color" content="#7a3e1d">
+  <title>Cafetería Escolar | Pedidos en línea</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="img/icon-192.png">
+  <link rel="apple-touch-icon" href="img/icon-192.png">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="barra">
+    <div class="marca">
+      <img src="img/icon-192.png" alt="" width="40" height="40">
+      <div>
+        <h1>Cafetería Escolar</h1>
+        <p>Pide en línea y recoge sin hacer fila</p>
+      </div>
+    </div>
+    <nav>
+      <button class="tab activo" data-vista="menu">Menú</button>
+      <button class="tab" data-vista="pedidos">Mis pedidos <span id="contador-pedidos" class="pill">0</span></button>
+      <button id="btn-instalar" class="btn-sec" hidden>Instalar app</button>
+    </nav>
+  </header>
+
+  <div id="estado-red" class="estado-red" hidden>Sin conexión: estás usando la versión guardada</div>
+
+  <main>
+    <!-- VISTA MENÚ -->
+    <section id="vista-menu" class="vista">
+      <div class="contenido">
+        <div class="filtros">
+          <input id="buscar" type="search" placeholder="Buscar producto..." aria-label="Buscar producto">
+          <div id="categorias" class="chips"></div>
+        </div>
+        <div id="lista-productos" class="grid"></div>
+        <p id="sin-resultados" class="vacio" hidden>No hay productos que coincidan con la búsqueda.</p>
+      </div>
+
+      <aside class="carrito" aria-label="Carrito">
+        <h2>Tu pedido <span id="total-articulos" class="pill">0</span></h2>
+        <ul id="items-carrito"></ul>
+        <p id="carrito-vacio" class="vacio">Agrega productos del menú.</p>
+        <div class="total">Total: <strong id="total">$0.00</strong></div>
+
+        <form id="form-pedido" novalidate>
+          <label>Nombre del alumno
+            <input id="nombre" name="nombre" autocomplete="name" placeholder="Ej. Luis Hernández">
+          </label>
+          <div class="fila">
+            <label>Grupo
+              <input id="grupo" name="grupo" maxlength="2" placeholder="5A">
+            </label>
+            <label>Hora de entrega
+              <input id="hora" name="hora" type="time" min="07:00" max="15:00">
+            </label>
+          </div>
+          <label>Comentarios (opcional)
+            <textarea id="comentarios" name="comentarios" rows="2" placeholder="Sin cebolla, poca salsa..."></textarea>
+          </label>
+          <ul id="errores" class="errores" role="alert"></ul>
+          <button type="submit" class="btn-prim">Confirmar pedido</button>
+        </form>
+      </aside>
+    </section>
+
+    <!-- VISTA PEDIDOS -->
+    <section id="vista-pedidos" class="vista" hidden>
+      <div class="contenido ancho">
+        <div class="titulo-seccion">
+          <h2>Historial de pedidos</h2>
+          <button id="btn-borrar-historial" class="btn-sec">Borrar historial</button>
+        </div>
+        <div id="lista-pedidos"></div>
+        <p id="pedidos-vacio" class="vacio">Todavía no has hecho pedidos.</p>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="dialogo-confirmacion">
+    <h2>¡Pedido confirmado!</h2>
+    <p>Tu folio es <strong id="folio"></strong></p>
+    <p>Muéstralo en la ventanilla a la hora indicada.</p>
+    <button id="cerrar-dialogo" class="btn-prim">Aceptar</button>
+  </dialog>
+
+  <div id="aviso" class="aviso" role="status" hidden></div>
+
+  <footer>
+    Cafetería Escolar · v1.0.0 · <a href="pruebas.html">Pruebas de funcionamiento</a>
+  </footer>
+
+  <script src="js/datos-respaldo.js"></script>
+  <script src="js/carrito.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
